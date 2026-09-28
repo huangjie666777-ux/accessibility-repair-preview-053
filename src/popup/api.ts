@@ -59,4 +59,8 @@ export async function sendCommand(
   return (await chrome.tabs.sendMessage(tab.id, message)) as RuntimeResponse;
 }
 
-export const emptyState: InspectionState = { status: 'idle', records: [] };
+export const emptyState: InspectionState = {
+  status: 'idle',
+  records: [],
+  preview: { phase: 'draft', entries: [], lastResult: null },
+};

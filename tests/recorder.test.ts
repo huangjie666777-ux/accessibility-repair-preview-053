@@ -111,7 +111,11 @@ describe('FocusRecorder', () => {
     document.body.innerHTML = '<button id="b">x</button>';
     focus(document.getElementById('b'));
     recorder.clear();
-    expect(recorder.getState()).toEqual({ status: 'idle', records: [] });
+    expect(recorder.getState()).toEqual({
+      status: 'idle',
+      records: [],
+      preview: { phase: 'draft', entries: [], lastResult: null },
+    });
     expect(document.querySelector('[data-kfi-ignore]')).toBeNull();
   });
 
@@ -119,5 +123,26 @@ describe('FocusRecorder', () => {
     document.body.innerHTML = '<div data-kfi-ignore="true"><button id="x">x</button></div>';
     focus(document.getElementById('x'));
     expect(recorder.getState().records).toHaveLength(0);
+  });
+
+  it('预演生效后新记录读取当前属性，历史记录保持原样', () => {
+    document.body.innerHTML = '<button id="p"></button>';
+    pressTab();
+    const button = document.getElementById('p')!;
+    focus(button);
+    recorder.addPreviewEntry({
+      seq: 1,
+      attribute: 'aria-label',
+      action: 'set',
+      value: '预演名称',
+    });
+    recorder.applyPreview();
+
+    pressTab();
+    focus(button);
+    const state = recorder.getState();
+    expect(state.records[0].name).toBe('');
+    expect(state.records[1].name).toBe('预演名称');
+    expect(state.preview.phase).toBe('active');
   });
 });

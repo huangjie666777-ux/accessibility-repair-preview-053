@@ -50,7 +50,16 @@
   </section>
 
   <section>
-    <h2>5. iframe（内部不检查）</h2>
+    <h2>5. 修复预演（不改网站源码）</h2>
+    <p>先巡检并聚焦下面控件，再从弹窗记录建立 aria-label 或 tabindex 条目。</p>
+    <button type="button" id="previewNameless"></button>
+    <span>上面的按钮无名称，可预演设置 aria-label=&quot;保存草稿&quot;。</span>
+    <p><a href="#" id="previewTab" title="链接">正序异常链接</a>：可预演设置 tabindex=&quot;0&quot; 或移除属性。</p>
+    <button type="button" id="mutatePreview">网站后续修改预演属性（制造撤销冲突）</button>
+  </section>
+
+  <section>
+    <h2>6. iframe（内部不检查）</h2>
     <iframe title="内嵌框架" width="100%" height="80" srcdoc="<button>iframe 内按钮</button>"></iframe>
   </section>
 
@@ -69,6 +78,9 @@
     });
     document.getElementById('layoutBtn').addEventListener('click', () => {
       holder.style.marginTop = holder.style.marginTop === '120px' ? '0' : '120px';
+    });
+    document.getElementById('mutatePreview').addEventListener('click', () => {
+      document.getElementById('previewNameless').setAttribute('aria-label', '网站自己的新名称');
     });
   </script>
 </body>

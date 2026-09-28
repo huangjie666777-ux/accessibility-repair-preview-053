@@ -5,9 +5,11 @@ import {
   type IssueDTO,
   type IssueCode,
   type NameSource,
+  type PreviewEntryInput,
 } from '../shared/messages.js';
 import { getAccessibleName } from './naming.js';
 import { FocusOutline } from './highlight.js';
+import { AccessibilityPreview, type PreviewResult } from './preview.js';
 
 interface TrackedRecord {
   dto: FocusRecordDTO;
@@ -46,7 +48,11 @@ export class FocusRecorder {
   private pendingMouseUntil = 0;
   private outline: FocusOutline | null = null;
 
-  constructor(private doc: Document = document) {}
+  private preview: AccessibilityPreview;
+
+  constructor(private doc: Document = document) {
+    this.preview = new AccessibilityPreview(this.doc, (seq) => this.resolveTrackedRecord(seq));
+  }
 
   start(): void {
     if (this.status !== 'idle') return;
@@ -75,6 +81,7 @@ export class FocusRecorder {
     this.doc.defaultView?.removeEventListener('resize', this.handleLayoutChange, true);
     this.records = [];
     this.seq = 0;
+    this.preview = new AccessibilityPreview(this.doc, (seq) => this.resolveTrackedRecord(seq));
     this.outline?.destroy();
     this.outline = null;
   }
@@ -91,7 +98,28 @@ export class FocusRecorder {
 
   getState() {
     this.refreshRemovedFlags();
-    return { status: this.status, records: this.records.map((item) => item.dto) };
+    const records = this.records.map((item) => item.dto);
+    return { status: this.status, records, preview: this.preview.getState() };
+  }
+
+  addPreviewEntry(input: PreviewEntryInput): PreviewResult {
+    return this.preview.addEntry(input);
+  }
+
+  updatePreviewEntry(id: string, input: PreviewEntryInput): PreviewResult {
+    return this.preview.updateEntry(id, input);
+  }
+
+  deletePreviewEntry(id: string): PreviewResult {
+    return this.preview.deleteEntry(id);
+  }
+
+  applyPreview(): PreviewResult {
+    return this.preview.apply();
+  }
+
+  undoPreview(): PreviewResult {
+    return this.preview.undo();
   }
 
   locate(seq: number): boolean {
@@ -202,8 +230,16 @@ export class FocusRecorder {
   private refreshRemovedFlags(): void {
     for (const item of this.records) {
       const node = item.ref.deref();
-      if (item.dto.removed) continue;
-      if (!node || !node.isConnected) item.dto.removed = true;
+      item.dto.removed = !node || !node.isConnected;
     }
+  }
+
+  private resolveTrackedRecord(seq: number): { node: HTMLElement; tag: string; name: string } | null {
+    const item = this.records.find((entry) => entry.dto.seq === seq);
+    if (!item) return null;
+    const node = item.ref.deref();
+    return node && node.isConnected
+      ? { node, tag: item.dto.tag, name: item.dto.name }
+      : null;
   }
 }
