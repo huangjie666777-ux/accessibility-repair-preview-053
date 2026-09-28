@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>键盘焦点巡检示例页</title>
+  <style>
+    body { font: 15px/1.7 sans-serif; max-width: 760px; margin: 24px auto; padding: 0 16px; }
+    section { border: 1px solid #ccc; border-radius: 8px; padding: 16px; margin: 16px 0; }
+    .hidden-panel { margin-top: 12px; padding: 12px; background: #f5f5f5; border-radius: 6px; }
+    #movable { transition: margin .3s; }
+    label { display: block; margin: 8px 0; }
+  </style>
+</head>
+<body>
+  <h1>动态焦点示例页</h1>
+  <p>请用本地静态服务器以 http:// 打开本页（例如 <code>npx serve examples</code>），然后启动扩展巡检。</p>
+
+  <section>
+    <h2>1. 普通控件</h2>
+    <label>用户名 <input type="text" aria-describedby="userhint" /></label>
+    <span id="userhint">名称由关联 label 提供，不读取输入值。</span>
+    <button type="button" id="namedBtn">普通按钮（有文本名称）</button>
+  </section>
+
+  <section>
+    <h2>2. 可访问名称优先级</h2>
+    <span id="ref-name">引用文本名称</span>
+    <button type="button" aria-labelledby="ref-name" aria-label="不会被使用的标签">
+      内部文字
+    </button>
+    <button type="button" aria-label="aria-label 名称">x</button>
+  </section>
+
+  <section>
+    <h2>3. 常见问题</h2>
+    <a href="#" tabindex="3">正 tabindex 的链接</a>
+    <p><button type="button" aria-hidden="true" style="margin-top:8px">
+      aria-hidden 容器内按钮
+    </button></p>
+    <p><a href="#" title="只有 title 不算名称">无名称链接（仅 href）</a></p>
+  </section>
+
+  <section>
+    <h2>4. 动态节点（删除与插回）</h2>
+    <div id="movable"><button type="button" id="dynamicBtn">会被移除/插回的按钮</button></div>
+    <button type="button" id="removeBtn">移除按钮</button>
+    <button type="button" id="insertBtn">插回同一节点</button>
+    <button type="button" id="cloneBtn">插入相似新按钮（应视为不同元素）</button>
+    <button type="button" id="layoutBtn">改变布局推动元素</button>
+  </section>
+
+  <section>
+    <h2>5. iframe（内部不检查）</h2>
+    <iframe title="内嵌框架" width="100%" height="80" srcdoc="<button>iframe 内按钮</button>"></iframe>
+  </section>
+
+  <script>
+    const dynamicBtn = document.getElementById('dynamicBtn');
+    const holder = document.getElementById('movable');
+    let detached = null;
+    document.getElementById('removeBtn').addEventListener('click', () => {
+      if (!detached) { detached = dynamicBtn; dynamicBtn.remove(); }
+    });
+    document.getElementById('insertBtn').addEventListener('click', () => {
+      if (detached) { holder.appendChild(detached); detached = null; }
+    });
+    document.getElementById('cloneBtn').addEventListener('click', () => {
+      holder.appendChild(dynamicBtn.cloneNode(true));
+    });
+    document.getElementById('layoutBtn').addEventListener('click', () => {
+      holder.style.marginTop = holder.style.marginTop === '120px' ? '0' : '120px';
+    });
+  </script>
+</body>
+</html>
