@@ -54,6 +54,17 @@
     <iframe title="内嵌框架" width="100%" height="80" srcdoc="<button>iframe 内按钮</button>"></iframe>
   </section>
 
+  <section>
+    <h2>6. 修复预演练习区（不改网站源码）</h2>
+    <p>巡检后，在弹窗记录上点「加 aria-label」「加 tabindex」建立命名方案，再「应用预演」用 Tab 验证，最后「撤销预演」恢复。</p>
+    <p>
+      <a href="#" id="fixNameless" class="fix-target">无名称链接（仅 href）</a><br />
+      <span id="fixSpan" tabindex="-1" class="fix-target">span 元素（tabindex=-1，Tab 到不了）</span>
+    </p>
+    <p>建议：把无名称链接 aria-label 设为“返回首页”；把 span 的 tabindex 由 -1 改为 0 后再用 Tab 巡检。</p>
+    <button type="button" id="conflictBtn">模拟页面脚本改动 aria-label（制造应用前冲突）</button>
+  </section>
+
   <script>
     const dynamicBtn = document.getElementById('dynamicBtn');
     const holder = document.getElementById('movable');
@@ -69,6 +80,9 @@
     });
     document.getElementById('layoutBtn').addEventListener('click', () => {
       holder.style.marginTop = holder.style.marginTop === '120px' ? '0' : '120px';
+    });
+    document.getElementById('conflictBtn').addEventListener('click', () => {
+      document.getElementById('fixNameless').setAttribute('aria-label', '页面脚本写入的名称');
     });
   </script>
 </body>

@@ -3,6 +3,7 @@ import type {
   RuntimeMessage,
   RuntimeResponse,
 } from '../shared/messages.js';
+import { emptyRehearsal } from '../shared/messages.js';
 
 export type TabKind = 'inspectable' | 'restricted';
 
@@ -59,4 +60,4 @@ export async function sendCommand(
   return (await chrome.tabs.sendMessage(tab.id, message)) as RuntimeResponse;
 }
 
-export const emptyState: InspectionState = { status: 'idle', records: [] };
+export const emptyState: InspectionState = { status: 'idle', records: [], rehearsal: emptyRehearsal };

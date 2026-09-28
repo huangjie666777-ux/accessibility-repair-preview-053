@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { FocusRecordDTO, InspectionState } from '../shared/messages.js';
 import { SCOPE_NOTE } from '../shared/messages.js';
 import { emptyState, getActiveTab, getTabKind, sendCommand } from './api.js';
+import { RehearsalPanel } from './RehearsalPanel.js';
 
 const SOURCE_LABEL: Record<FocusRecordDTO['source'], string> = {
   tab: 'Tab',
@@ -22,6 +23,11 @@ export function App() {
   const [state, setState] = useState<InspectionState>(emptyState);
   const [issuesOnly, setIssuesOnly] = useState(false);
   const [error, setError] = useState('');
+  const [draftSignal, setDraftSignal] = useState<{
+    seq: number;
+    attr: 'aria-label' | 'tabindex';
+    nonce: number;
+  } | null>(null);
 
   const refresh = useCallback(async () => {
     const tab = await getActiveTab();
@@ -34,7 +40,7 @@ export function App() {
     }
     try {
       const next = await sendCommand(tab, { type: 'GET_STATE' });
-      setState({ status: next.status, records: next.records });
+      setState({ status: next.status, records: next.records, rehearsal: next.rehearsal });
       setError('');
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -51,8 +57,12 @@ export function App() {
     try {
       const tab = await getActiveTab();
       const next = await sendCommand(tab, message);
-      setState({ status: next.status, records: next.records });
-      setError('');
+      if (next.error) {
+        setError(next.error);
+      } else {
+        setState({ status: next.status, records: next.records, rehearsal: next.rehearsal });
+        setError('');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
@@ -138,7 +148,18 @@ export function App() {
       <ol className="records">
         {visibleRecords.map((record) => (
           <li key={record.seq}>
-            <button type="button" className="record" onClick={() => void locate(record.seq)}>
+            <div
+              className="record"
+              role="button"
+              tabIndex={0}
+              onClick={() => void locate(record.seq)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  void locate(record.seq);
+                }
+              }}
+            >
               <span className="seq">#{record.seq}</span>
               <span className="meta">
                 {new Date(record.time).toLocaleTimeString()} · {SOURCE_LABEL[record.source]} ·{' '}
@@ -156,10 +177,42 @@ export function App() {
                 </span>
               )}
               {record.removed && <span className="removed">原元素已移除</span>}
-            </button>
+            </div>
+            <span className="record-actions">
+              <button
+                type="button"
+                className="mini"
+                disabled={record.removed || state.rehearsal.phase === 'applied'}
+                onClick={() =>
+                  setDraftSignal({ seq: record.seq, attr: 'aria-label', nonce: Date.now() })
+                }
+                title="为该节点建立 aria-label 预演条目"
+              >
+                加 aria-label
+              </button>
+              <button
+                type="button"
+                className="mini"
+                disabled={record.removed || state.rehearsal.phase === 'applied'}
+                onClick={() =>
+                  setDraftSignal({ seq: record.seq, attr: 'tabindex', nonce: Date.now() })
+                }
+                title="为该节点建立 tabindex 预演条目"
+              >
+                加 tabindex
+              </button>
+            </span>
           </li>
         ))}
       </ol>
+
+      <RehearsalPanel
+        rehearsal={state.rehearsal}
+        records={state.records}
+        busy={tabKind !== 'inspectable'}
+        onCommand={command}
+        draftSignal={draftSignal}
+      />
 
       <p className="scope">{SCOPE_NOTE}整页导航后自动停止并清空。</p>
     </main>

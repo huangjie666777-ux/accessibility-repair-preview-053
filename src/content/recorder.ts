@@ -95,14 +95,8 @@ export class FocusRecorder {
   }
 
   locate(seq: number): boolean {
-    const item = this.records.find((entry) => entry.dto.seq === seq);
-    if (!item) return false;
-    const node = item.ref.deref();
-    if (!node || !node.isConnected) {
-      item.dto.removed = true;
-      return false;
-    }
-    item.dto.removed = false;
+    const node = this.resolveNode(seq);
+    if (!node) return false;
     if (!this.outline) this.outline = new FocusOutline(this.doc);
     try {
       node.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
@@ -111,6 +105,24 @@ export class FocusRecorder {
     }
     this.outline.track(node);
     return true;
+  }
+
+  /** 按记录序号解析“同一个 DOM 节点”；节点未连接或已被回收时返回 null。 */
+  resolveNode(seq: number): HTMLElement | null {
+    const item = this.records.find((entry) => entry.dto.seq === seq);
+    if (!item) return null;
+    const node = item.ref.deref();
+    if (!node || !node.isConnected) {
+      item.dto.removed = true;
+      return null;
+    }
+    item.dto.removed = false;
+    return node;
+  }
+
+  getRecordSnapshot(seq: number): { tag: string; name: string } | null {
+    const item = this.records.find((entry) => entry.dto.seq === seq);
+    return item ? { tag: item.dto.tag, name: item.dto.name } : null;
   }
 
   private handleLayoutChange = (): void => {
@@ -202,8 +214,9 @@ export class FocusRecorder {
   private refreshRemovedFlags(): void {
     for (const item of this.records) {
       const node = item.ref.deref();
-      if (item.dto.removed) continue;
-      if (!node || !node.isConnected) item.dto.removed = true;
+      // 同一节点被插回后必须恢复；WeakRef 失效/未连接才标记移除，
+      // 不能因为曾经移除就永久视为已移除。
+      item.dto.removed = !node || !node.isConnected;
     }
   }
 }
